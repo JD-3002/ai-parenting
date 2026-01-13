@@ -26,7 +26,15 @@ export const childApi = {
 export const questionApi = {
   ask: (data) => api.post("/question/ask", data).then((r) => r.data),
   history: (params) => api.get("/question/history", { params }).then((r) => r.data),
-  feedback: (id, data) => api.post(`/question/${id}/feedback`, data).then((r) => r.data)
+  feedback: (id, data) => api.post(`/question/${id}/feedback`, data).then((r) => r.data),
+  followUp: (id, data) => api.post(`/question/${id}/follow-up`, data).then((r) => r.data)
+};
+
+export const planApi = {
+  generate: (data) => api.post("/plans/generate", data).then((r) => r.data),
+  listTemplates: () => api.get("/plans/templates").then((r) => r.data),
+  getTemplate: (id) => api.get(`/plans/templates/${id}`).then((r) => r.data),
+  deleteTemplate: (id) => api.delete(`/plans/templates/${id}`).then((r) => r.data)
 };
 
 export { getError };

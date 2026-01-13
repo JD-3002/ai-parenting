@@ -1,9 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext.jsx";
-import { childApi, getError, questionApi } from "./api.js";
+import { childApi, getError, planApi, questionApi } from "./api.js";
 
 const ages = ["3-5", "6-8", "9-12"];
+const tones = ["supportive", "concise"];
+const languages = ["en", "es", "fr"];
+const planTypes = [
+  { value: "daily_routine", label: "Daily routine" },
+  { value: "bedtime_script", label: "Bedtime script" },
+  { value: "screen_time_plan", label: "Screen-time plan" },
+  { value: "tricky_moment_script", label: "What to say (tricky moment)" }
+];
 
 const Page = ({ children }) => <div className="app-shell">{children}</div>;
 
@@ -35,6 +43,7 @@ const Nav = () => {
   return (
     <div className="nav">
       <a href="/ask" className={pathname === "/ask" ? "active" : ""}>Ask</a>
+      <a href="/plans" className={pathname === "/plans" ? "active" : ""}>Plans</a>
       <a href="/children" className={pathname === "/children" ? "active" : ""}>Children</a>
       <a href="/" className={pathname === "/" ? "active" : ""}>Home</a>
     </div>
@@ -50,7 +59,7 @@ const Shell = ({ children }) => {
           <div className="brand-badge">AI</div>
           <div>
             <div style={{ fontSize: 24, fontWeight: 800 }}>AI Parenting Helper</div>
-            <div className="muted">Age-smart answers, stories, and activities—safe by design.</div>
+            <div className="muted">Age-smart answers, stories, and activities — safe by design.</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -123,6 +132,8 @@ const AskPanel = ({ childrenList, onAsked }) => {
   const [childId, setChildId] = useState("");
   const [ageGroup, setAgeGroup] = useState("6-8");
   const [childEmotion, setChildEmotion] = useState("");
+  const [tone, setTone] = useState("supportive");
+  const [language, setLanguage] = useState("en");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -141,11 +152,22 @@ const AskPanel = ({ childrenList, onAsked }) => {
     }
     setLoading(true);
     try {
-      const payload = { question: question.trim(), childEmotion };
+      const payload = { question: question.trim(), childEmotion, tone, language };
       if (childId) payload.childId = childId;
       else payload.ageGroup = ageGroup;
       const res = await questionApi.ask(payload);
-      onAsked(res);
+      const resolvedAge =
+        childId ? childrenList.find((c) => c._id === childId)?.ageGroup || ageGroup : ageGroup;
+      onAsked({
+        ...res,
+        question: question.trim(),
+        ageGroup: resolvedAge,
+        childId,
+        childEmotion,
+        tone,
+        language,
+        followUps: []
+      });
     } catch (err) {
       setError(getError(err));
     } finally {
@@ -185,6 +207,19 @@ const AskPanel = ({ childrenList, onAsked }) => {
           <div style={{ flex: 1, minWidth: 160 }}>
             <label style={{ fontSize: 13, fontWeight: 600 }}>Emotion (optional)</label>
             <Input value={childEmotion} onChange={(e) => setChildEmotion(e.target.value)} placeholder="e.g. anxious, curious" />
+          </div>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Tone</label>
+            <Select value={tone} onChange={(e) => setTone(e.target.value)}>
+              {tones.map((t) => <option key={t} value={t}>{t}</option>)}
+            </Select>
+          </div>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Language</label>
+            <Input value={language} onChange={(e) => setLanguage(e.target.value)} list="language-options" placeholder="e.g. en, es" />
+            <datalist id="language-options">
+              {languages.map((l) => <option key={l} value={l} />)}
+            </datalist>
           </div>
         </div>
         {error && <div style={{ color: "#fca5a5", fontSize: 13 }}>{error}</div>}
@@ -256,9 +291,86 @@ const ChildManager = ({ childrenList, onChange }) => {
   );
 };
 
-const ResponseView = ({ data, onFeedback }) => {
+const FollowUpBox = ({ disabled, onSubmit }) => {
+  const [text, setText] = useState("");
+  const [tone, setTone] = useState("supportive");
+  const [language, setLanguage] = useState("en");
+  const [childEmotion, setChildEmotion] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) {
+      setError("Please enter a follow-up question");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      await onSubmit({
+        question: text.trim(),
+        tone,
+        language,
+        childEmotion
+      });
+      setText("");
+    } catch (err) {
+      setError(getError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 12 }}>
+      <div className="section-title">Ask a follow-up</div>
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <textarea
+          className="textarea"
+          rows={2}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Ask a follow-up based on this answer..."
+          disabled={disabled || loading}
+        />
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <label style={{ fontSize: 12, fontWeight: 600 }}>Tone</label>
+            <Select value={tone} onChange={(e) => setTone(e.target.value)} disabled={disabled || loading}>
+              {tones.map((t) => <option key={t}>{t}</option>)}
+            </Select>
+          </div>
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <label style={{ fontSize: 12, fontWeight: 600 }}>Language</label>
+            <Input value={language} onChange={(e) => setLanguage(e.target.value)} list="language-options" disabled={disabled || loading} />
+          </div>
+          <div style={{ flex: 1.5, minWidth: 180 }}>
+            <label style={{ fontSize: 12, fontWeight: 600 }}>Emotion (optional)</label>
+            <Input value={childEmotion} onChange={(e) => setChildEmotion(e.target.value)} disabled={disabled || loading} />
+          </div>
+        </div>
+        {error && <div style={{ color: "#fca5a5", fontSize: 13 }}>{error}</div>}
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button type="submit" disabled={disabled || loading}>{loading ? "Thinking..." : "Send follow-up"}</Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+const ResponseView = ({ data, onFeedback, onFollowUp }) => {
   if (!data) return null;
-  const { answer, analysis, story, activities, parentTips, safety } = data;
+  const { answer, finalAnswer, analysis, story, activities, parentTips, safety, question, followUps, tone, language } = data;
+  const turns = [
+    { role: "Child", text: question },
+    { role: "Assistant", text: finalAnswer || answer, safety }
+  ];
+  (followUps || []).forEach((f) => {
+    turns.push({ role: "Child", text: f.question });
+    turns.push({ role: "Assistant", text: f.finalAnswer || f.answer, safety: { flag: f.safetyFlag } });
+  });
+
   return (
     <Card
       title="Response"
@@ -269,18 +381,27 @@ const ResponseView = ({ data, onFeedback }) => {
         </div>
       }
     >
+      <div className="section-title" style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <span>Conversation</span>
+        <span className="pill-ghost">Tone: {tone || "supportive"}</span>
+        <span className="pill-ghost">Lang: {language || "en"}</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+        {turns.map((t, i) => (
+          <div key={i} style={{ padding: 10, border: "1px solid var(--border)", borderRadius: 10, background: t.role === "Assistant" ? "rgba(255,255,255,0.03)" : "transparent" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{t.role}</div>
+            <div style={{ fontSize: 14, lineHeight: 1.6 }}>{t.text}</div>
+            {t.safety && t.safety.flag && (
+              <div style={{ marginTop: 6 }}>
+                <span className={t.safety.flag === "safe" ? "badge-safe" : "badge-unsafe"}>
+                  Safety: {t.safety.flag}
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-        <div style={{ padding: 10, border: "1px solid var(--border)", borderRadius: 10 }}>
-          <div className="section-title">Answer</div>
-          <div style={{ fontSize: 14, lineHeight: 1.6 }}>{answer}</div>
-          {safety && (
-            <div style={{ marginTop: 8 }}>
-              <span className={safety.flag === "safe" ? "badge-safe" : "badge-unsafe"}>
-                Safety: {safety.flag}
-              </span>
-            </div>
-          )}
-        </div>
         <div style={{ padding: 10, border: "1px solid var(--border)", borderRadius: 10 }}>
           <div className="section-title">Story / Analogy</div>
           <div style={{ fontSize: 14, lineHeight: 1.6 }}>{story}</div>
@@ -307,6 +428,7 @@ const ResponseView = ({ data, onFeedback }) => {
           </div>
         </div>
       </div>
+      <FollowUpBox disabled={!data?.id && !data?._id} onSubmit={onFollowUp} />
     </Card>
   );
 };
@@ -518,16 +640,245 @@ const AskPage = () => {
     }
   };
 
+  const sendFollowUp = async (payload) => {
+    if (!response?.id && !response?._id) throw new Error("No question selected");
+    const id = response.id || response._id;
+    const res = await questionApi.followUp(id, payload);
+    const newEntry = {
+      question: payload.question,
+      childEmotion: payload.childEmotion,
+      tone: payload.tone,
+      language: payload.language,
+      answer: res.answer,
+      finalAnswer: res.answer,
+      safetyFlag: res?.safety?.flag,
+      safetyNotes: res?.safety?.notes,
+      safeAnswer: res?.safety?.safeAnswer
+    };
+    setResponse((prev) => ({
+      ...prev,
+      followUps: [...(prev?.followUps || []), newEntry]
+    }));
+    loadHistory();
+  };
+
   return (
     <Shell>
       <div className="grid grid-2col">
         <div className="grid" style={{ gridTemplateColumns: "1fr", gap: 16 }}>
           <AskPanel childrenList={children} onAsked={(res) => { setResponse(res); loadHistory(); }} />
-          <ResponseView data={response} onFeedback={sendFeedback} />
+          <ResponseView data={response} onFeedback={sendFeedback} onFollowUp={sendFollowUp} />
         </div>
         <div className="grid" style={{ gridTemplateColumns: "1fr", gap: 16 }}>
           <ChildManager childrenList={children} onChange={loadChildren} />
           <HistoryList items={history} onSelect={(item) => setResponse(item)} onRefresh={loadHistory} loading={historyLoading} />
+        </div>
+      </div>
+    </Shell>
+  );
+};
+
+const PlanResult = ({ plan }) => {
+  if (!plan) return null;
+  return (
+    <Card title="Plan">
+      <div className="section-title">Overview</div>
+      <p className="muted" style={{ lineHeight: 1.6 }}>{plan.overview}</p>
+
+      {plan.schedule?.length > 0 && (
+        <>
+          <div className="section-title" style={{ marginTop: 12 }}>Schedule</div>
+          <div className="section-grid">
+            {plan.schedule.map((block, idx) => (
+              <div key={idx} className="feature-card">
+                <div className="pill-ghost">{block.block || "Block"}</div>
+                <ul className="list">
+                  {block.items?.map((it, i) => <li key={i}>{it}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {plan.script && (
+        <>
+          <div className="section-title" style={{ marginTop: 12 }}>Script / What to say</div>
+          <p style={{ lineHeight: 1.6 }}>{plan.script}</p>
+        </>
+      )}
+
+      <div className="section-grid" style={{ marginTop: 12 }}>
+        {["Tips", "Boundaries", "Activities", "Reminders"].map((title) => {
+          const key = title.toLowerCase();
+          const list = plan[key] || plan[`${key}s`] || [];
+          return (
+            <div key={title} className="feature-card">
+              <div className="pill-ghost">{title}</div>
+              <ul className="list">
+                {list.map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+};
+
+const PlansPage = () => {
+  const [form, setForm] = useState({
+    type: "daily_routine",
+    ageGroup: "6-8",
+    goal: "",
+    childEmotion: "",
+    tone: "supportive",
+    language: "en",
+    saveTemplate: true,
+    title: ""
+  });
+  const [plan, setPlan] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadTemplates = async () => {
+    try {
+      const res = await planApi.listTemplates();
+      setTemplates(res);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await planApi.generate(form);
+      setPlan(res.plan);
+      if (res.saved) loadTemplates();
+    } catch (err) {
+      setError(getError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const useTemplate = async (id) => {
+    try {
+      const res = await planApi.getTemplate(id);
+      setPlan(res.plan);
+    } catch (err) {
+      alert(getError(err));
+    }
+  };
+
+  const deleteTemplate = async (id) => {
+    if (!confirm("Delete this template?")) return;
+    try {
+      await planApi.deleteTemplate(id);
+      setTemplates((t) => t.filter((i) => i._id !== id));
+    } catch (err) {
+      alert(getError(err));
+    }
+  };
+
+  return (
+    <Shell>
+      <div className="grid" style={{ gridTemplateColumns: "1.1fr 0.9fr", gap: 16 }}>
+        <Card title="Plan copilot">
+          <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600 }}>Type</label>
+                <Select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                  {planTypes.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </Select>
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600 }}>Age group</label>
+                <Select value={form.ageGroup} onChange={(e) => setForm({ ...form, ageGroup: e.target.value })}>
+                  {ages.map((a) => <option key={a}>{a}</option>)}
+                </Select>
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600 }}>Tone</label>
+                <Select value={form.tone} onChange={(e) => setForm({ ...form, tone: e.target.value })}>
+                  {tones.map((t) => <option key={t}>{t}</option>)}
+                </Select>
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600 }}>Language</label>
+                <Input value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} list="language-options" />
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600 }}>Goal / context</label>
+              <textarea
+                className="textarea"
+                rows={3}
+                value={form.goal}
+                onChange={(e) => setForm({ ...form, goal: e.target.value })}
+                placeholder="What do you want this plan to achieve?"
+                required
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600 }}>Child emotion (optional)</label>
+              <Input value={form.childEmotion} onChange={(e) => setForm({ ...form, childEmotion: e.target.value })} placeholder="e.g. anxious, excited" />
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={form.saveTemplate}
+                  onChange={(e) => setForm({ ...form, saveTemplate: e.target.checked })}
+                />
+                Save as template
+              </label>
+              {form.saveTemplate && (
+                <Input
+                  placeholder="Template title (optional)"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  style={{ flex: 1, minWidth: 200 }}
+                />
+              )}
+            </div>
+            {error && <div style={{ color: "#fca5a5", fontSize: 13 }}>{error}</div>}
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button type="submit" disabled={loading}>{loading ? "Generating..." : "Generate plan"}</Button>
+            </div>
+          </form>
+        </Card>
+        <div className="grid" style={{ gridTemplateColumns: "1fr", gap: 16 }}>
+          <PlanResult plan={plan} />
+          <Card title="Saved templates">
+            {templates.length === 0 ? (
+              <div className="empty">No templates yet.</div>
+            ) : (
+              <div className="grid" style={{ gridTemplateColumns: "1fr", gap: 10 }}>
+                {templates.map((t) => (
+                  <div key={t._id} className="history-item">
+                    <div style={{ fontWeight: 700 }}>{t.title}</div>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      {t.type} · {t.ageGroup} · {new Date(t.createdAt).toLocaleString()}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <Button tone="ghost" onClick={() => useTemplate(t._id)}>View</Button>
+                      <Button tone="danger" onClick={() => deleteTemplate(t._id)}>Delete</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
         </div>
       </div>
     </Shell>
@@ -561,6 +912,14 @@ export default function App() {
             element={
               <PrivateRoute>
                 <ChildrenPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/plans"
+            element={
+              <PrivateRoute>
+                <PlansPage />
               </PrivateRoute>
             }
           />

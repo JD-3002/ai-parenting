@@ -1,10 +1,12 @@
-import { generateContent, safetyCheck } from "../services/ai.service.js";
+import { generateContent, generateFollowUpContent, safetyCheck } from "../services/ai.service.js";
 import QuestionSession from "../models/QuestionSession.js";
 import Child from "../models/Child.js";
 
 export const askQuestion = async (req, res) => {
   const body = req.validated?.body || req.body;
   const { question, ageGroup, childEmotion, childId } = body;
+  const tone = body.tone || "supportive";
+  const language = body.language || "en";
 
   let resolvedAgeGroup = ageGroup;
   let resolvedChildId = null;
@@ -21,8 +23,14 @@ export const askQuestion = async (req, res) => {
   }
 
   try {
-    const content = await generateContent({ question, ageGroup: resolvedAgeGroup, childEmotion });
-    const safety = await safetyCheck({ question, ageGroup: resolvedAgeGroup, content });
+    const content = await generateContent({
+      question,
+      ageGroup: resolvedAgeGroup,
+      childEmotion,
+      tone,
+      language
+    });
+    const safety = await safetyCheck({ question, ageGroup: resolvedAgeGroup, content, language, tone });
     const finalAnswer = safety.flag === "unsafe" && safety.safeAnswer ? safety.safeAnswer : content.answer;
 
     const session = await QuestionSession.create({
@@ -31,6 +39,8 @@ export const askQuestion = async (req, res) => {
       userId: req.user?.userId,
       childId: resolvedChildId,
       childEmotion,
+      tone,
+      language,
       analysis: content.analysis,
       answer: content.answer,
       finalAnswer,
@@ -49,6 +59,8 @@ export const askQuestion = async (req, res) => {
       story: content.story,
       activities: content.activities,
       safety,
+      tone,
+      language,
       id: session._id
     });
   } catch (err) {
@@ -104,5 +116,71 @@ export const giveFeedback = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to save feedback" });
+  }
+};
+
+export const askFollowUp = async (req, res) => {
+  const body = req.validated?.body || req.body;
+  const { question, childEmotion } = body;
+
+  try {
+    const session = await QuestionSession.findOne({ _id: req.params.id, userId: req.user?.userId });
+    if (!session) return res.status(404).json({ error: "Not found" });
+
+    const tone = body.tone || session.tone || "supportive";
+    const language = body.language || session.language || "en";
+
+    const priorTurns = [
+      { question: session.question, answer: session.finalAnswer || session.answer },
+      ...(session.followUps || []).map((f) => ({
+        question: f.question,
+        answer: f.finalAnswer || f.answer
+      }))
+    ].filter((t) => t.question && t.answer);
+
+    const content = await generateFollowUpContent({
+      question,
+      ageGroup: session.ageGroup,
+      childEmotion,
+      tone,
+      language,
+      priorTurns
+    });
+    const safety = await safetyCheck({
+      question,
+      ageGroup: session.ageGroup,
+      content,
+      language,
+      tone
+    });
+    const finalAnswer = safety.flag === "unsafe" && safety.safeAnswer ? safety.safeAnswer : content.answer;
+
+    session.followUps = session.followUps || [];
+    session.followUps.push({
+      question,
+      childEmotion,
+      tone,
+      language,
+      answer: content.answer,
+      finalAnswer,
+      safetyFlag: safety.flag,
+      safetyNotes: safety.notes,
+      safeAnswer: safety.safeAnswer
+    });
+    await session.save();
+
+    return res.json({
+      analysis: content.analysis,
+      answer: finalAnswer,
+      parentTips: content.parentTips,
+      story: content.story,
+      activities: content.activities,
+      safety,
+      tone,
+      language
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to process follow-up" });
   }
 };

@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import questionRoutes from "./routes/question.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import childRoutes from "./routes/child.routes.js";
+import planRoutes from "./routes/plan.routes.js";
 
 const app = express();
 const corsOptions = {
@@ -29,6 +30,7 @@ app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/children", childRoutes);
 app.use("/api/question", questionRoutes);
+app.use("/api/plans", planRoutes);
 
 // Basic error handler
 // eslint-disable-next-line no-unused-vars

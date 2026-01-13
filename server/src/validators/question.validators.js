@@ -4,7 +4,9 @@ export const askSchema = z.object({
   question: z.string().trim().min(5, "question is too short").max(500, "question too long"),
   ageGroup: z.enum(["3-5", "6-8", "9-12"]).optional(),
   childEmotion: z.string().trim().max(50, "emotion too long").optional(),
-  childId: z.string().trim().optional()
+  childId: z.string().trim().optional(),
+  tone: z.enum(["supportive", "concise"]).optional(),
+  language: z.string().trim().max(20).optional()
 }).refine((data) => data.ageGroup || data.childId, {
   message: "Provide ageGroup or childId",
   path: ["ageGroup"]
@@ -32,6 +34,13 @@ export const historyQuerySchema = z.object({
     .optional()
     .transform((v) => (v ? parseInt(v, 10) : 20))
     .pipe(z.number().int().min(1).max(100).default(20))
+});
+
+export const followUpSchema = z.object({
+  question: z.string().trim().min(3, "question is too short").max(500, "question too long"),
+  tone: z.enum(["supportive", "concise"]).optional(),
+  language: z.string().trim().max(20).optional(),
+  childEmotion: z.string().trim().max(50, "emotion too long").optional()
 });
 
 export const signupSchema = z.object({

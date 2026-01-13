@@ -1,17 +1,17 @@
 :root {
-  --bg: #0f1729;
-  --panel: #0f1629;
-  --card: #0f1524;
-  --muted: #8ea0c2;
-  --border: #1f2a44;
-  --accent: #7c3aed;
-  --accent-2: #22d3ee;
-  --text: #e5ecff;
-  --shadow: 0 20px 60px rgba(12, 16, 35, 0.4);
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --border: #e2e8f0;
+  --accent: #2f80ed;
+  --accent-2: #6c5ce7;
+  --text: #1f2937;
+  --shadow: 0 16px 40px rgba(31, 41, 55, 0.12);
   --radius: 14px;
 }
 
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 
 * {
   box-sizing: border-box;
@@ -19,9 +19,9 @@
 
 body {
   margin: 0;
-  font-family: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.15), transparent 35%),
-    radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.12), transparent 30%),
+  font-family: "Manrope", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at 20% 20%, rgba(47, 128, 237, 0.08), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(108, 92, 231, 0.08), transparent 25%),
     var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -56,11 +56,11 @@ a {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(34, 211, 238, 0.9));
+  background: linear-gradient(135deg, rgba(47, 128, 237, 0.9), rgba(108, 92, 231, 0.9));
   display: grid;
   place-items: center;
   font-weight: 800;
-  color: #0b1020;
+  color: #ffffff;
 }
 
 .muted {
@@ -72,7 +72,7 @@ a {
   display: flex;
   gap: 10px;
   align-items: center;
-  background: rgba(255, 255, 255, 0.02);
+  background: #f1f5f9;
   border: 1px solid var(--border);
   padding: 8px;
   border-radius: 12px;
@@ -80,19 +80,20 @@ a {
 
 .nav a {
   color: var(--text);
-  font-weight: 600;
-  padding: 8px 10px;
+  font-weight: 700;
+  padding: 8px 12px;
   border-radius: 10px;
   border: 1px solid transparent;
 }
 
 .nav a.active {
-  border-color: rgba(124, 58, 237, 0.5);
-  background: rgba(124, 58, 237, 0.15);
+  border-color: var(--accent);
+  background: rgba(47, 128, 237, 0.1);
+  color: #0f3d86;
 }
 
 .card {
-  background: linear-gradient(180deg, rgba(17, 24, 39, 0.7), rgba(13, 19, 33, 0.9));
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
@@ -144,7 +145,7 @@ a {
   width: 100%;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: #0b1020;
+  background: #f8fafc;
   color: var(--text);
   padding: 10px 12px;
   font-size: 14px;
@@ -170,20 +171,20 @@ a {
 
 .button-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #0b1020;
-  box-shadow: 0 14px 32px rgba(124, 58, 237, 0.25);
+  color: #ffffff;
+  box-shadow: 0 14px 30px rgba(47, 128, 237, 0.25);
 }
 
 .button-ghost {
-  background: rgba(255, 255, 255, 0.03);
+  background: #eef2f7;
   color: var(--text);
   border: 1px solid var(--border);
 }
 
 .button-danger {
-  background: rgba(185, 28, 28, 0.12);
-  color: #fca5a5;
-  border: 1px solid rgba(185, 28, 28, 0.35);
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecdd3;
 }
 
 .pill {
@@ -192,11 +193,11 @@ a {
   gap: 6px;
   padding: 8px 10px;
   border-radius: 999px;
-  background: rgba(124, 58, 237, 0.15);
+  background: rgba(47, 128, 237, 0.12);
   color: var(--text);
-  border: 1px solid rgba(124, 58, 237, 0.3);
+  border: 1px solid rgba(47, 128, 237, 0.2);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .section-title {
@@ -216,8 +217,8 @@ a {
   display: inline-block;
   padding: 6px 8px;
   border-radius: 8px;
-  background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
+  background: #ecfdf3;
+  color: #0f9d58;
   font-size: 12px;
   font-weight: 700;
 }
@@ -226,8 +227,8 @@ a {
   display: inline-block;
   padding: 6px 8px;
   border-radius: 8px;
-  background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
+  background: #fef2f2;
+  color: #dc2626;
   font-size: 12px;
   font-weight: 700;
 }
@@ -236,13 +237,13 @@ a {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  background: #f8fafc;
   cursor: pointer;
 }
 
 .history-item:hover {
-  border-color: rgba(124, 58, 237, 0.5);
-  background: rgba(124, 58, 237, 0.08);
+  border-color: var(--accent);
+  background: rgba(47, 128, 237, 0.08);
 }
 
 .empty {
@@ -265,7 +266,7 @@ a {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.03);
+  background: #f8fafc;
 }
 
 .stat-value {
@@ -284,14 +285,14 @@ a {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 14px;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.7), rgba(15, 21, 36, 0.9));
+  background: #fdfefe;
 }
 
 .step {
   border: 1px dashed var(--border);
   border-radius: 12px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: #f8fafc;
 }
 
 .pill-ghost {
@@ -300,9 +301,9 @@ a {
   gap: 6px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: #eef2f7;
   color: var(--text);
   border: 1px solid var(--border);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }

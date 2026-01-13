@@ -17,6 +17,8 @@ const QuestionSessionSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     childId: { type: mongoose.Schema.Types.ObjectId, ref: "Child" },
     childEmotion: String,
+    tone: { type: String, enum: ["supportive", "concise"], default: "supportive" },
+    language: { type: String, default: "en" },
     analysis: AnalysisSchema,
     answer: String,
     finalAnswer: String,
@@ -32,6 +34,22 @@ const QuestionSessionSchema = new mongoose.Schema(
           helpful: Boolean,
           rating: { type: Number, min: 1, max: 5 },
           comment: String
+        },
+        { _id: false, timestamps: { createdAt: true, updatedAt: false } }
+      )
+    ],
+    followUps: [
+      new mongoose.Schema(
+        {
+          question: { type: String, required: true },
+          childEmotion: String,
+          tone: { type: String, enum: ["supportive", "concise"], default: "supportive" },
+          language: { type: String, default: "en" },
+          answer: String,
+          finalAnswer: String,
+          safetyFlag: { type: String, enum: ["safe", "unsafe"], default: "safe" },
+          safetyNotes: [String],
+          safeAnswer: String
         },
         { _id: false, timestamps: { createdAt: true, updatedAt: false } }
       )
